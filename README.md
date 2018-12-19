@@ -186,7 +186,7 @@ Speaking of speech, as previously mentioned, the Web Chat app supports the Speec
 
     Why didn't we just stuff the user's query into the input field and simulate a click on the Send button? Because doesn't actually work: the Web Chat requires actual user typing to fill the input field. We do stuff the user's query into the input field, but only to make it obvious what's being sent.
 
-* For text-to-speech, we use the Speech Service's REST API to request an MP3 file of the utterance, then play that file using HMTL 5 audio. To allow this to proceed efficiently, two queues are used: one for the requests being made to the Speech Service, and the other for the audio files being played. This allows speech to be synthesized while still being spoken while ensuring that the bot's spoken responses don't overlap.
+* For text-to-speech, we use the Speech Service's REST API to request an MP3 file of the utterance, then play that file using HTML 5 audio. To allow this to proceed efficiently, two queues are used: one for the requests being made to the Speech Service, and the other for the audio files being played. This allows speech to be synthesized while still being spoken while ensuring that the bot's spoken responses don't overlap.
 
 * Note that we temporarily disable speech recognition while the bot is talking. This prevents wasting bandwidth on speech recognition if the bot can overhear itself, and possibly sending spurious requests.
 
@@ -194,7 +194,7 @@ Speaking of speech, as previously mentioned, the Web Chat app supports the Speec
 
 The first troubleshooting step is always to double-check the keys and endpoints in `appsettings.json` and `bot.htm`. The following FAQ offers additional suggestions to various issues you may encounter.
 
-### Q: While opening Web Chat in a browser from the local `default.hmt` and attempting to use speech, the browser frequently asks for permission to use the microphone.
+### Q: While opening Web Chat in a browser from the local `default.htm` and attempting to use speech, the browser frequently asks for permission to use the microphone.
 
 A: The Web Chat app turns speech recognition off and on while the bot is speaking, and also turns it off after no speech has been detected for twenty seconds. For locally-hosted files, this causes you to be prompted repeatedly for permission to use the microphone. This is a security precaution taken by browser makers, and most don't have a way to turn that warning off for locally-hosted files. Instead, while the bot is running locally (press F5 in Visual Studio), access the page through `http://localhost:3839` using Chrome. Chrome will retain the microphone permission for the session.
 
