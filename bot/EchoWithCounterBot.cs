@@ -104,10 +104,9 @@ namespace Microsoft.BotBuilderSamples
 
         public async Task OnTurnAsync(ITurnContext turnContext, CancellationToken cancellationToken)
         {
-            var type = activity.Type;
-
             context = turnContext;
             activity = context.Activity;
+            var type = activity.Type;
 
             // add bot's ID to greeted set so we don't greet it (no harm in doing it eeach time)
             greeted.Add(activity.Recipient.Id);

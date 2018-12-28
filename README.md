@@ -86,7 +86,7 @@ Since you're using trial or free tier keys, at most your bot might stop working 
 
 Publish your bot to the Azure cloud by following these steps.
 
-1. Open the file `[botname].PublishSettings` in your Visual Studio project. For example, if your bot's Azure name is `myhooverbot`, the file is named `myhooverbot.PublishSettings`.
+1. Open the file `[botname].PublishSettings` in your Visual Studio project's `PostDeployScripts` folder. For example, if your bot's Azure name is `myhooverbot`, the file is named `myhooverbot.PublishSettings`.
 1. Find the password (value of `userPWD` field) in this file and copy it to the clipboard.
 1. Right-click the project and choose Publish to open the Publish page in Visual Studio.
 1. On the Publish page, click **Publish**.
