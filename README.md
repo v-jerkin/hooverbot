@@ -65,8 +65,10 @@ To create the bot on Azure:
 1. Copy the files from this repo's `wwwroot` folder into the Visual Studio project's `wwwroot` folder. These files contain the bot's user interface and client-side logic.
 
 1. Make sure the project builds and runs. With the project running, try your bot in the [emulator](https://docs.microsoft.com/en-us/azure/bot-service/bot-service-debug-emulator?view=azure-bot-service-4.0). Just double-click the `.bot` file in Visual Studio.
+
+**NOTE:** The `.bot` file is encrypted. The first time you open your bot in the Emulator, you'll be prompted for your bot secret; it's the same secret you previously pasted into `appsettings.json`.
  
-Running the project also opens the Web Chat app in a browser. This app connects to a version of the bot running in the Azure cloud. It won't work until you publish the bot to Azure. For now, use the emulator to test unpublished versions of your bot.
+Running the project also opens the Web Chat app in a browser. This app connects to a version of the bot running in the Azure cloud. It won't work until you publish the bot. For now, use the emulator to test unpublished versions of your bot. There are a few more things to do before the bot is ready to publish.
 
 ## Hooking up Web Chat
 
@@ -86,7 +88,7 @@ Since you're using trial or free tier keys, at most your bot might stop working 
 
 Publish your bot to the Azure cloud by following these steps.
 
-1. Open the file `[botname].PublishSettings` in your Visual Studio project's `PostDeployScripts` folder. For example, if your bot's Azure name is `myhooverbot`, the file is named `myhooverbot.PublishSettings`.
+1. Open the file `[botname].PublishSettings` in your Visual Studio project's `PostDeployScripts` folder. For example, if your bot's Azure name is `hooverbot-abc`, the file is named `hooverbot-abc.PublishSettings`.
 1. Find the password (value of `userPWD` field) in this file and copy it to the clipboard.
 1. Right-click the project and choose Publish to open the Publish page in Visual Studio.
 1. On the Publish page, click **Publish**.
