@@ -2,11 +2,17 @@
 
 The Hoover Bot is a conversational interface to The JFK Files. The JFK Files is a Web app that lets you search a corpus of documents related to the assassination of President John F. Kennedy on November 22, 1963, released by the United States government. Microsoft has presented this technology demonstration, which showcases the power of Azure Cognitive Search, on several occasions.
 
+![The JFK Files landing page](images/jfkfiles_landing.png)
+
 * [Experience The JFK Files](https://jfk-demo.azurewebsites.net/)
 * [The JFK Files GitHub](https://github.com/Microsoft/AzureSearch_JFK_Files)
 * [Video presentation](https://channel9.msdn.com/Shows/AI-Show/Using-Cognitive-Search-to-Understand-the-JFK-Documents)
 
-Using the same database as the JFK Files, the Hoover Bot lets you ask a bot based on former FBI director J. Edgar Hoover about the JFK assassination, either by typing or by speaking. The bot answers using a simulation of Hoover's voice. The Hoover Bot is a single-page Web app that works in any modern browser. It has been tested in current versions of Microsoft Edge, Mozilla Firefox, and Google Chrome.
+Using the same database as the JFK Files, the Hoover Bot lets you ask a bot based on former FBI director J. Edgar Hoover about the JFK assassination, either by typing or by speaking. The bot answers using a simulation of Hoover's voice. 
+
+![Hoover Bot example](images/hooverbot_example.png)
+
+The Hoover Bot is a single-page Web app that works in any modern browser. It has been tested in current versions of Microsoft Edge, Mozilla Firefox, and Google Chrome.
 
 The Hovoer Bot requires a subscription to the following Microsoft Azure Cognitive Services. (A trial or regular free-tier subscription is fine.)
 
@@ -15,7 +21,7 @@ The Hovoer Bot requires a subscription to the following Microsoft Azure Cognitiv
 
  The document contains instructions for setting up the Azure services used by the demo and building and deploying your own copy of the bot.
 
-**NOTE:** The Hoover Bot is a technology demonstration designed solely to illustrate specific uses of Microsoft's technology. It is not intended to be a production-ready application.
+**NOTE** The Hoover Bot is a technology demonstration designed solely to illustrate specific uses of Microsoft's technology. It is not intended to be a production-ready application.
 
 ## Prerequisites
 
@@ -25,7 +31,7 @@ The JFK Files is a separate application with a database backend powered by Azure
 
     https://github.com/Microsoft/AzureSearch_JFK_Files
 
-Follow the instructions in this repo to create your own instance of the JFK Files. There's a template that will create the necessary Azure services for you. You'll need the URLs for the Azure Search service and the Web Service that were created during setup (you can obtain these from the Azure portal).
+Follow the instructions in the JFK Files repo to create your own instance of the JFK Files. There's a template that will create the necessary Azure services for you. You'll need the URLs for the Azure Search service and the Web Service that were created during setup (you can also obtain these from the Azure portal if you don't catch them in the template result).
 
 Note that adding all the documents to the index may take substantial time. We suggest letting the JFK Files setup process run overnight.
 
@@ -35,38 +41,56 @@ The Hoover bot is based on the `EchoBot` template. In its original form, this bo
 
 To create the bot on Azure:
 
-1. Create a Web App Bot in the Azure portal. This style of bot includes a Web hosting component, so we won't need to host it elsewhere. The free pricing tier is suitable for developing the bot. Choose "EchoBot (C#)" as the template.
+1. Create a Web App Bot in the Azure portal by clicking **+ Create a Resource** in the sidebar, then choosing "Web App Bot" under **AI + Machine Learning**. You can also search for Web App Bot.
 
-   Your bot will be hosted on a subdomain of `azurewebsites.net`. Therefore, its name must be unique among all other Azure Web sites. Try `hooverbot-abc` where `abc` are your initials, or variations on this theme. Valid characters are letters (not case sensitive), numbers, and hyphens.
+    ![Web app bot](images/webappbot_new.png)
 
-1. Download the source code for the bot from the Build blade of the new Web App Bot resource. This is a Visual Studio project that we will be customizing with both code and resources.
+    This style of bot includes a Web hosting component, so we won't need to host our Web page elsewhere. The free pricing tier is suitable for developing the bot. Choose "EchoBot (C#)" as the template.
+
+    ![Web app bot](images/webappbot_setup.png)
+
+    Your bot will be hosted on a subdomain of `azurewebsites.net`. Therefore, its name must be unique among all other Azure Web sites. Try `hooverbot-abc` where `abc` are your initials, or variations on this theme. Valid characters are letters (not case sensitive), numbers, and hyphens.
+
+1. Download the source code for the bot from the Build blade of the new Web App Bot resource. This download is a Visual Studio project that we will be customizing with our own code and resources.
+
+    ![Download source](images/download_source.png)
 
 1. Open the `EchoBotWithCounter.sln` file to launch Visual Studio and open the project.
 
 1. Using NuGet (**Tools > NuGet Package Manager**), add the following libraries:
 
+    ![NuGet](images/nuget.png)
+
     * `Microsoft.Azure.Search.Data`, the Azure search client
     * `Microsoft.AdaptiveCards`, adaptive cards for bot responses
     * `Newtonsoft.Json`, a parser for JSON files
 
-1. Copy the files from the `bot` folder of this repository to the top level of the Visual Studio project. Some of the files have the same name as files already in the project; allow the new files to replace the old ones.
+1. Copy the files from the `bot` folder of this repository to the top level of the Visual Studio project. Some of the files have the same name as files already in the project; allow the files being copied to replace the existing ones.
 
-1. Open `appsettings.json` and enter the required values. You can find the values you need in the Azure dashboard.
+1. Open `appsettings.json` and enter the required values. 
+
+    ![appsettings.json](images/appsettings.png)
+
+    You can find the values you need in the Azure dashboard.
 
     * `botFilePath` and `botFileSecret` can be found in the Application Settings blade of your Web App Bot (scroll down to the Application Settings heading).
     * `searchName` and `searchKey` can be found in the Keys blade of your JFK Files search service. The `searchName` is the name of the resource, which is displayed in bold at the top of the blade. 
 
         We suggest not using an admin key with the Hoover Bot. Instead, click **Manage query keys** to obtain a query key. Using a query key, which can only be used for searches, is good security proctice. It prevents others from obtaining administrative access to your Azure Search instance if the admin key leaks out.
 
+        ![Query keys](images/query_keys.png)
+
         The `searchIndex` name should already be `jfkindex` in `appsettings.json` and should not be changed.
 
         Change the hostname of the `SearchUrl` field (the part after `https://` where it currently says `jfk-site-hostname`) to have the hostname of your own JFK Files Web app instance, which you created in the following section.
 
-1. Copy the files from this repo's `wwwroot` folder into the Visual Studio project's `wwwroot` folder. These files contain the bot's user interface and client-side logic.
+1. Copy the files from this repo's `wwwroot` folder into the Visual Studio project's `wwwroot` folder. These files contain the bot's user interface and client-side logic. Again, allow same-named files to replace existing files.
 
 1. Make sure the project builds and runs. With the project running, try your bot in the [emulator](https://docs.microsoft.com/en-us/azure/bot-service/bot-service-debug-emulator?view=azure-bot-service-4.0). Just double-click the `.bot` file in Visual Studio.
 
-**NOTE:** The `.bot` file is encrypted. The first time you open your bot in the Emulator, you'll be prompted for your bot secret; it's the same secret you previously pasted into `appsettings.json`.
+    ![Bot Emulator](images/emulator.png)
+
+    **NOTE** The `.bot` file is encrypted. The first time you open your bot in the Emulator, you'll be prompted for your bot secret; it's the same secret you previously pasted into `appsettings.json`.
  
 Running the project also opens the Web Chat app in a browser. This app connects to a version of the bot running in the Azure cloud. It won't work until you publish the bot. For now, use the emulator to test unpublished versions of your bot. There are a few more things to do before the bot is ready to publish.
 
@@ -74,29 +98,53 @@ Running the project also opens the Web Chat app in a browser. This app connects 
 
 Azure Bot Service's Web Chat is a JavaScript component that lets you easily embed your bot in any Web site. We'll use it in the J. Edgar Hoover Bot Web page. To get Web Chat to talk to your bot, you must enable the bot's Direct Line channel and provide an authentication token in the `bot.htm` page. 
 
-In the Azure portal, enable Direct Line in your Web App Bot's Channels blade. Copy one of the two secret keys from the Direct Line configuration page and paste it into `bot.htm` in place of the placeholder text. For more help, see [Connect a bot to Direct Line](https://docs.microsoft.com/en-us/azure/bot-service/bot-service-channel-connect-directline?view=azure-bot-service-3.0).
+In the Azure portal, enable Direct Line in your Web App Bot's Channels blade. 
 
-You'll also see a Web Chat channel in the Channels blade. This refers to the v3 Web Chat feature used by the Bot Framework emulator, also available via the Test in Web Chat blade in the Azure portal. The v4 Web Chat we're using uses the Direct Line protocol.
+**NOTE** There's already a Web Chat channel in the Channels blade, which you might think is what you want. This refers to the v3 Web Chat feature. The v4 Web Chat we're using uses the Direct Line protocol.
 
-After you've added the Direct Line secret to `bot.htm`, you can now publish the bot so you can test it in a  browser.
+Click the globe icon to add this channel.
 
-**Important security note**  The Hoover Bot is a technology demonstration and is not intended to be a production application. Your bot and speech subscription keys are embedded in the source code of `bot.htm` and can therefore be easily obtained by anyone with access to the site. This will allow them to use the service in their own apps.
+![New Direct Line channel](images/new_directline.png)
 
-Since you're using trial or free tier keys, at most your bot might stop working because too many requests are being made using your keys. We do not recommend using paid keys for the Hoover Bot, as this could cost you actual money. You are responsible for the security of your keys and for all requests made using your keys.
+Click Add New Site.
+
+![Add Direct Line site](images/add_directline.png)
+
+Enter Direct Line as the name of the new site. Keys are generated and the configuration page for the new Direct Line connection appear.
+
+![Direct Line keys](images/directline_keys.png)
+
+Click the Show button to reveal one of secret keys, then copy it and paste it into `bot.htm` in place of the placeholder text. 
+
+![bot.htm](images/bot_htm.png)
+
+Don't worry about the speech-related items here; we'll fill those in later.
+
+**NOTE** For more help, see [Connect a bot to Direct Line](https://docs.microsoft.com/en-us/azure/bot-service/bot-service-channel-connect-directline?view=azure-bot-service-3.0).
+
+After you've added the Direct Line secret to `bot.htm`, you can now publish the bot so you can test it in a browser.
+
+**IMPORTANT**  The Hoover Bot is a technology demonstration and is not intended to be a production application. Your bot and speech subscription keys are embedded in the source code of `bot.htm` and can therefore be easily obtained by anyone with access to the site. This will allow them to use the service in their own apps. Since you're using trial or free tier keys, at most your bot might stop working because too many requests are being made using your keys. We do not recommend using paid keys for the Hoover Bot, as this could cost you actual money. You are responsible for the security of your keys and for all requests made using your keys.
 
 ## Publishing your bot
 
 Publish your bot to the Azure cloud by following these steps.
 
 1. Open the file `[botname].PublishSettings` in your Visual Studio project's `PostDeployScripts` folder. For example, if your bot's Azure name is `hooverbot-abc`, the file is named `hooverbot-abc.PublishSettings`.
+
 1. Find the password (value of `userPWD` field) in this file and copy it to the clipboard.
-1. Right-click the project and choose Publish to open the Publish page in Visual Studio.
+
+1. Right-click the project in the Solution Explorer and choose **Publish** to open the Publish page.
+
+    ![Publishing the bot](images/publish.png)
+
 1. On the Publish page, click **Publish**.
+
 1. When you're asked for the password, paste it into the password field and click **OK**.
  
-After your code has been published, the JFK bot's Web site opens in your browser. It may take a moment for the site to "warm up" after being restarted as part of deployment.
+After your code has been published, the Hoover Bot's Web site opens in your browser. It may take a moment for the site to "warm up" after being restarted as part of deployment.
 
-To make publishing easier the next time, save your deployment password. Click **Configure** and paste the password in the appropriate field, then click **Save**.
+To make publishing easier the next time, save your deployment password. Click **Configure** in the Publish page and paste the password in the appropriate field, then click **Save**.
 
 ## Adding voice input and output
 
@@ -114,16 +162,39 @@ To make our bot's voice sound like J. Edgar Hoover, we need recordings of his vo
 
 The quality of the recording isn't ideal. It's a telephone call to begin with, and the recording is old and contains a lot of noise. We also can't use any audio where Johnson and Hoover are speaking at the same time, which happens frequently. It would be better, as well, if we had a lot more utterances. Still, even with just a couple hundred utterances, the synthesized voice is, mostly, recognizably Hoover's. There are other recorded phone conversations between Johnson and Hoover that could be used to provide further utterances, if you want to improve the quality.
 
-**TIP:** We used the free [Audacity](https://www.audacityteam.org/) audio editor to prepare the audio samples. Audacity lets you "tag" segments of audio within the file, then export the tagged sections using the tag names as filenames. If you want to add more utterances, you'll find this Audacity upt to the task.
+**TIP** We used the free [Audacity](https://www.audacityteam.org/) audio editor to prepare the audio samples. Audacity lets you "tag" segments of audio within the file, then export the tagged sections using the tag names as filenames. If you want to add more utterances, you'll find Audacity up to the task.
 
 After extracting the utterances, we created a ZIP archive containing a numbered audio file for each utterance, along with a text file that holds the number of the file, a tab (code point 9), and the text of the utterance. The text has been normalized, spelling out numbers and abbreviations. And now we pass this data on to you.
 
 To create your custom voice using this data set:
 
-1. Associate the custom voice account with your Speech service subscription by entering the subscription key in the Custom Voice portal, [cris.ai](http://cris.ai).
-1. Upload the `hoover.zip` file (in the `voice` folder) as well as the `transcript.txt` file to the Custom Voice portal.
-1. Use this data set to train a new custom voice. This will take a significant amount of time, so perhaps let it run overnight. (However, note you can train a custom speech model at the same time.)
-1. Create a new endpoint to use with this voice. You'll find the URL under the endpoint's Details. Take a note of it; we'll need it in the Hoover bot Web app. You want the 10-minute WebSocket (`wss:`) endpoint.
+1. Log in to the Custom Voice and Speech portal, [cris.ai](http://cris.ai), with the same Microsoft account you use for your Azure subscriptions.
+
+    The first time you log in, you'll be asked to associate your Custom Voice and Speech account with a Speech Service subscription.
+
+    ![Connect Speech Service subscription](images/connect_subscription.png)
+
+    Click **Connect existing subscription**, then enter either of the subscription keys for your Speech Service subscription and click **Add.**
+
+1. Upload the `hoover.zip` file and the `transcript.txt` file (both in the `voice` folder) to the Data page of the Custom Voice portal. Click **Import Data**, fill in the Import Voice data form and choose the transcript and voice files, and click **Import**. 
+    
+    ![Import voice data](images/import_voice_data.png)
+     
+1. Wait until the Status column in the My Voice Data page reads "Succeeded."
+
+1. Switch to the Models page and click **Create New** to use this data set to train the custom voice. Choose the data set you just uploaded and fill in the rest of the requested information, then click **Create**.
+
+    ![Create voice model](images/create_voice_model.png)
+
+    This operation can take a significant amount of time, so perhaps let it run overnight. However, note you can train a custom speech model at the same time.
+
+1. After the new custom voice has been created, click **Deploy** next to the new voice in the Models page to create a new endpoint.
+
+    ![Create voice endpoint](images/create_voice_endpoint.png)
+
+    Enter the name and description as requested, then click **Create**.
+
+It takes a momemnt to create the new endpoint. You'll find the URL next to the endpoint on the Endpoints page. Take a note of it; we'll need it in the Hoover bot Web app.
 
 For full details on the uploading and training process, see [Creating custom voice fonts](https://docs.microsoft.com/azure/cognitive-services/speech-service/how-to-customize-voice-font).
 
@@ -137,28 +208,57 @@ There are hundreds of known CIA cryptonyms. Fortunately, the JFK Files search de
 
 Note that some cryptonyms are regular English words, like ZIPPER. There are still included in the pronunciation data because they should appear in their all-uppercase form when recognized. We've also included "JFK," which is not a cryptonym, but should be recognized as a single word.
 
-**Tip**: Pronunciations are given priority based on their order in the pronunciation file. To prevent shorter cryptonyms from being recognized prematurely when a cryptomym prefix is itself a cryptonym, (e.g. recognizing "GP" instead of "GPFLOOR", then recognizing "floor" sepaately), we sorted the pronunciation file in reverse alphabetical order. This way, GPFLOOR comes before GP, and all is right with the world.
+**TIP** Pronunciations are given priority based on their order in the pronunciation file. To prevent shorter cryptonyms from being recognized prematurely when a cryptomym begins with a prefix that is itself a cryptonym, (e.g. recognizing "GP" instead of "GPFLOOR", then recognizing "floor" sepaately), we sorted the pronunciation file in reverse alphabetical order. This way, GPFLOOR comes before GP, and all is right with the world.
 
-**Aside** Searching The JFK Files for "JFK" is not actually very useful, because nearly every document in the collection, even those related to other individuals, includes a cover page indicating that the document is part of the "JFK Assassination System." In some documents, a notice containing "JFK" appears on *every* page. So searching for Kennedy's cryptonym, GPIDEAL, is more effective in finding documents of which he is the subject. (You might try adding some logic to the bot to help with this...)
+**BTW** Searching The JFK Files for "JFK" is not actually very useful, because nearly every document in the collection, even those related to other individuals, includes a cover page indicating that the document is part of the "JFK Assassination System." In some documents, a notice containing "JFK" appears on *every* page. So searching for Kennedy's cryptonym, GPIDEAL, is more effective in finding documents where JFK is the subject. (You might try adding some code to the bot to help with this...)
 
-Creating a custom language model using the cryptonym pronunciation data also requires language data; you can't train a language model without both files. The language file contains phrases or sentences that are likely to be uttered by a user. The language data is treated as an addition to a base model provided by Microsoft, so it needn't be extensive. We have provided a file, `questions.txt`, consisting of a handful of sample questions that might be asked by users of the Hoover Bot.
+Creating a custom language model using the cryptonym pronunciation data also requires language data; you can't train a language model without both files. The language file contains phrases or sentences that are likely to be uttered by a user. The language data is treated as an addition to a base model provided by Microsoft, so it needn't be extensive. We have provided a file, `questions.txt`, consisting of a handful of sample questions that users might ask the Hoover Bot.
 
 With these two files, you're ready to adapt Speech Recognition.
 
-1. Associate the custom recognition with your Speech service subscription by entering the subscription key in the Custom Speech portal, [cris.ai](http://cris.ai).
-1. Under Adaptation Data, upload `cryptonyms.txt` (in the `speech` folder) as a pronunciation data set and `questions.txt` as a language data set.
-1. Use these data sets to train a new custom speech-to-text model. (This can take a significant amount of time. However, it can be done simultaneously with custom voice training.)
-1. Create an endpoint to be used with the custom speech model and make a note of it.
+1. Log in to the Custom Voice and Speech portal, [cris.ai](http://cris.ai), with the same Microsoft account you use for your Azure subscriptions.
+
+1. Upload `cryptonyms.txt` as a pronunciation data set and `questions.txt` as a language data set to the Adaptation Data page of the Custom Speech portal. Both are in the `speech` folder of this repo.
+
+    First, click **Import** next to Language data sets, fill out the form, and attach `questions.txt`. Click **Import** to proceed.
+
+    ![Import language data](images/import_language.png)
+
+    Then click **Import** next to Pronunciation data sets, fill out the form and attach `cryptonyms.txt`. Again cilck **Import** to proceed.
+
+    It takes a moment to process the new data sets. Wait until both data sets have a status of Succeeded before continuing.
+
+1. Switch to the Language Models page and click **Create New** to use these data sets to train the speech recognizer. 
+ 
+    ![Create language model](images/language_model.png)]
+
+    Fill out the form as shown, choose the language and pronunciation data sets you just uploaded, and click **Create.**
+
+    Creating the language model can take a significant amount of time; you might want to do it overnight. However, it can be done simultaneously with custom voice training.
+
+1. Create an endpoint to be used with the custom speech model by clicking **Create New** on the ENdpoints page.
+
+    ![Create sppeech endpoint](images/create_speech_endpoint.png)
+
+    Once more, fill out the form, choose the v3.3 Unified acoustic model and the language model you just created, and cilck **Create.**
+
+    It may take a few moments to deploy the endpoint. When the endpoint's Status shows as Succeeded on the Endpoints page, click its Details button and scroll down to the Endpoints table to find the WebSockets (`wss://`) URL you need. You want the second one listed, the one thot supports up to 10 minutes of dictation.
 
 For full details on the uploading and training process, see [Enable custom pronunciation](https://docs.microsoft.com/azure/cognitive-services/speech-service/how-to-customize-pronunciation), [Create a custom language model](https://docs.microsoft.com/azure/cognitive-services/speech-service/how-to-customize-language-model). and [Create a custom speech-to-text endpoint](https://docs.microsoft.com/azure/cognitive-services/speech-service/how-to-create-custom-endpoint).
 
 ### Enabling custom speech in the Web app
 
-1. Open the `bot.htm` file again (in `wwwroot`) and add your your Speech key and the required custom Speech and Voice endpoints where indicated. You can find your key in the Azure dashboard and the endpoints in the [cris.ai portal](http://cris.ai/). The token endpoint just needs the hostname edited to reflect the region your subscription is in.
+1. Open the `bot.htm` file again (in `wwwroot`) and add your your Speech key and the required custom Speech and Voice endpoints where indicated. 
 
-1. Build and publish the bot. The bot's Web Chat opens in a browser. It takes a moment for the bot to "warm up" after the service is restarted, so wait patiently until the bot displays its greeting. 
+    These are the endpoints you made a note of when you created the custom voice and speech models. If you didn't copy them, you can find your key in the Azure dashboard and the endpoints in the [cris.ai portal](http://cris.ai/). 
 
-With the bot open in the browser, you can activate the "Use speech" checkbox. After Hoover's voice greets you, you can ask him questions such as "Mr. Hoover, what does GPFLOOR mean?" Note that the bot's speech recognition is temporarily disabled while the bot is speaking, and that recognition turns off automatically after twenty seconds of no speech.
+    The token endpoint just needs the hostname edited to reflect the region your subscription is in. If it's in `westus`, you don't have to change it at all.
+
+1. Build and publish the bot as before. The bot's Web Chat opens in a browser. It takes a moment for the bot to "warm up" after the service is restarted, so wait patiently until the bot displays its greeting. 
+
+With the bot open in the browser, you can activate the "Use speech" checkbox. After Hoover's voice greets you, you can ask him questions by addressing him as "Mr. Hoover," for example, "Mr. Hoover, what does GPFLOOR mean?"
+
+The bot's speech recognition is temporarily disabled while the bot is speaking. Rcognition turns off automatically after twenty seconds without detected speech.
 
 ## Technical details
 
