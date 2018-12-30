@@ -320,11 +320,11 @@ A: The "gone wrong" message indicates an unhandled exception on the server side 
 
 A: Speech recognition automatically turns off after twenty seconds without speech. (It could be other sound as long as it doesn't contain speech.) To recognize speech continuously, change this line:
 
-    `speechRecognizer.speechEndDetected = _ => element.checked && element.click();`
+    speechRecognizer.speechEndDetected = _ => element.checked && element.click();
 
  to:
 
-    `speechRecognizer.speechEndDetected = _ => speechRecognizer.startContinuousRecognitionAsync();`
+    speechRecognizer.speechEndDetected = _ => speechRecognizer.startContinuousRecognitionAsync();
 
 This causes speech recognition to re-enable itself automatically whenever it times out. This workaround may not be necessary with future versions of the Speech SDK.
 
