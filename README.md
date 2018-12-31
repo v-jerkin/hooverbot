@@ -37,7 +37,7 @@ Note that adding all the documents to the index may take substantial time. We su
 
 ## Creating the Bot
 
-The Hoover bot is based on the `EchoBot` template. In its original form, this bot simply echoes back whatever you type or say to it, along with a turn counter. We'll update it to search The JFK Files. We'll also add a customized Web app that includes our own CSS styles and images to match The JFK Files. Finally, we'll use custom speech and voice services to make sure the bot understands the user's spoken queries and responds using a facsimile of J. Edgar Hoover's voice.
+The Hoover bot is based on the `EchoBot` template. In its original form, this bot simply echoes back whatever you type or say to it, along with a turn counter. We'll update it to search The JFK Files. We'll also add a customized Web app that includes our own CSS styles and images. Finally, we'll use custom speech and voice services to make sure the bot understands the user's spoken queries and responds using a facsimile of J. Edgar Hoover's voice.
 
 To create the bot on Azure:
 
@@ -82,7 +82,7 @@ To create the bot on Azure:
 
         The `searchIndex` name should already be `jfkindex` in `appsettings.json` and should not be changed.
 
-        Change the hostname of the `SearchUrl` field (the part after `https://` where it currently says `jfk-site-hostname`) to have the hostname of your own JFK Files Web app instance, which you created in the following section.
+        Change the hostname of the `SearchUrl` field (the part after `https://` where it currently says `jfk-site-hostname`) to have the hostname of your own JFK Files Web app instance, which you created in an earlier section.
 
 1. Copy the files from this repo's `wwwroot` folder into the Visual Studio project's `wwwroot` folder. These files contain the bot's user interface and client-side logic. Again, allow same-named files to replace existing files.
 
@@ -110,7 +110,7 @@ Click Add New Site.
 
 ![Add Direct Line site](images/add_directline.png)
 
-Enter Direct Line as the name of the new site. Keys are generated and the configuration page for the new Direct Line connection appear.
+Enter "Direct Line" as the name of the new site. Keys are generated and the configuration page for the new Direct Line connection appear.
 
 ![Direct Line keys](images/directline_keys.png)
 
@@ -124,7 +124,7 @@ Don't worry about the speech-related items here; we'll fill those in later.
 
 After you've added the Direct Line secret to `bot.htm`, you can now publish the bot so you can test it in a browser.
 
-**IMPORTANT**  The Hoover Bot is a technology demonstration and is not intended to be a production application. Your bot and speech subscription keys are embedded in the source code of `bot.htm` and can therefore be easily obtained by anyone with access to the site. This will allow them to use the service in their own apps. Since you're using trial or free tier keys, at most your bot might stop working because too many requests are being made using your keys. We do not recommend using paid keys for the Hoover Bot, as this could cost you actual money. You are responsible for the security of your keys and for all requests made using your keys.
+**IMPORTANT**  The Hoover Bot is a technology demonstration and is not intended to be a production application. Your bot and speech subscription keys are embedded in the source code of `bot.htm` and can therefore be easily obtained by anyone with access to the site. This will allow them to use the service in their own apps under your subscription. When you're using trial or free tier keys, at most your bot might stop working because too many requests are being made with your keys. We do not recommend using paid keys for the Hoover Bot, as this could cost you actual money. You are always responsible for the security of your keys and for all requests made using your keys.
 
 ## Publishing your bot
 
@@ -144,7 +144,7 @@ Publish your bot to the Azure cloud by following these steps.
  
 After your code has been published, the Hoover Bot's Web site opens in your browser. It may take a moment for the site to "warm up" after being restarted as part of deployment.
 
-To make publishing easier the next time, save your deployment password. Click **Configure** in the Publish page and paste the password in the appropriate field, then click **Save**.
+To make publishing easier the next time, you can save your deployment password. Click **Configure** in the Publish page and paste the password in the appropriate field, then click **Save**.
 
 ## Adding voice input and output
 
@@ -186,7 +186,7 @@ To create your custom voice using this data set:
 
     ![Create voice model](images/create_voice_model.png)
 
-    This operation can take a significant amount of time, so perhaps let it run overnight. However, note you can train a custom speech model at the same time.
+    This operation can take a significant amount of time, so perhaps let it run overnight. You can train a custom speech model at the same time (see next section).
 
 1. After the new custom voice has been created, click **Deploy** next to the new voice in the Models page to create a new endpoint.
 
@@ -194,7 +194,7 @@ To create your custom voice using this data set:
 
     Enter the name and description as requested, then click **Create**.
 
-It takes a momemnt to create the new endpoint. You'll find the URL next to the endpoint on the Endpoints page. Take a note of it; we'll need it in the Hoover bot Web app.
+It takes a momemnt to create the new endpoint. You'll find the URL next to the endpoint on the Endpoints page. Take note of it; we'll need it in the Hoover bot Web app.
 
 For full details on the uploading and training process, see [Creating custom voice fonts](https://docs.microsoft.com/azure/cognitive-services/speech-service/how-to-customize-voice-font).
 
@@ -234,15 +234,15 @@ With these two files, you're ready to adapt Speech Recognition.
 
     Fill out the form as shown, choose the language and pronunciation data sets you just uploaded, and click **Create.**
 
-    Creating the language model can take a significant amount of time; you might want to do it overnight. However, it can be done simultaneously with custom voice training.
+    Creating the language model can take a significant amount of time; you might want to do it overnight. Itt can run simultaneously with custom voice training.
 
-1. Create an endpoint to be used with the custom speech model by clicking **Create New** on the ENdpoints page.
+1. Create an endpoint to be used with the custom speech model by clicking **Create New** on the Endpoints page.
 
     ![Create sppeech endpoint](images/create_speech_endpoint.png)
 
     Once more, fill out the form, choose the v3.3 Unified acoustic model and the language model you just created, and cilck **Create.**
 
-    It may take a few moments to deploy the endpoint. When the endpoint's Status shows as Succeeded on the Endpoints page, click its Details button and scroll down to the Endpoints table to find the WebSockets (`wss://`) URL you need. You want the second one listed, the one thot supports up to 10 minutes of dictation.
+    It may take a few moments to deploy the endpoint. When the endpoint's Status shows as Succeeded on the Endpoints page, click its Details button and scroll down to the Endpoints table to find the WebSockets (`wss://`) URL you need. You want the second one listed, the one thot supports up to 10 minutes of dictation but not dictation of punctuation.
 
 For full details on the uploading and training process, see [Enable custom pronunciation](https://docs.microsoft.com/azure/cognitive-services/speech-service/how-to-customize-pronunciation), [Create a custom language model](https://docs.microsoft.com/azure/cognitive-services/speech-service/how-to-customize-language-model). and [Create a custom speech-to-text endpoint](https://docs.microsoft.com/azure/cognitive-services/speech-service/how-to-create-custom-endpoint).
 
@@ -264,13 +264,13 @@ The bot's speech recognition is temporarily disabled while the bot is speaking. 
 
 The entirety of the bot's server-side logic is in `EchoWithCounterBot.cs`. Here are some high points.
 
-* There are some static constants early on that can be changed to customize the bot's stock responses to greetings and other social niceties, or to change the maximum number of search results displayed.
+* There are some static constants early on that can be changed to customize the bot's stock responses to greetings and other social niceties, or to change the maximum number of search results displayed.)
 
 * Sending the initial greeting ("Hello, fellow investigator!") is more tricky than it might seem at first. When a chat starts, the bot receives a `ConversationUpdate` event for itself joining the chat and another for the user. So one part of a successful greeting strategy is to ignore the bot's event and respond only to the actual user joining the chat. Also, only one instance of the bot is created for all users of the Web Chat, so we must make sure each Web Chat user has their own user ID. On top of all that, Web Chat doesn't send `ConversationUpdate` until the user sends his or her first message, so we need some way to force the chat to begin. (We'll see how we deal with the latter two issues in a bit).
 
 * Requests are processed by the method `OnTurnAsync`. This method handles responses to three kinds of user requests. First, it detects greetings and such, and responds with a canned phrase. Second, it detects cryptonyms in user requests and responds with a definition. Finally, it executes search queries against the JFK Files' Azure Search back-end. In the case of cryptonyms, both the definition and searh results are performed.
 
-* In the search results section there's a `do`/`while` loop that sends a typing indicator while the bot is performing the search. Typing indicators are a good way to let the user know the bot is still working on something for them. AFter the typing message is sent, the Web Chat client displays a "..." animation for three seconds, or until another message is received from the bot. Sometimes searches can take longer than three seconds, leading to the user thinking the bot has stopped responding, and surprise when the bot seemingly randomly sends results later. So we continue sending a typing message every two seconds while the search completes, and another one as we begin preparing the response.
+* In the search results section there's a `do`/`while` loop that sends a typing indicator while the bot is performing the search. Typing indicators are a good way to let the user know the bot is still working on something for them. AFter the typing message is sent, the Web Chat client displays a "..." animation for three seconds, or until another message is received from the bot. Sometimes searches can take longer than three seconds, leading to the user thinking the bot has stopped responding, and causing surprise when the bot seemingly randomly spits out results later. So we continue sending a typing message every two seconds while the search completes, and another one as we begin preparing the response.
 
 * Finally, search results queries are put together into a "carousel" of cards, each bearing an image thumbnail and text extracted from the document. The card layout uses a custom `AdaptiveCard` class. Since most documents begin with a cover page that looks similar across the entire archive, we use the second page's thumbnail in multi-page documents to give each result a visually-distinguishable thumbnail.
 
@@ -282,9 +282,9 @@ Client-side, you'll find all our logic in `bot.htm`. This document is included i
 
 * You'll notice that when defined the `user` and `bot` objects, which represent the two user accounts in our Web Chat, we made sure to assigne the correct `role` to each. This ensures that when we send a speech-derived question to the bot, that message is right-justified in the chat window just as though the user had typed it.
 
-* We create a Direct Line connection and render the Web Chat interface pretty much exactly as you might have seen it in Bot Framework tutorials. However, we also subscribe to events containing a `speak` attribute so we can speak the bot's responses aloud. Server-side, we always set a `speak` attribute on messages that we want to have spoken if the user has turned on speech.
+* We create a Direct Line connection and render the Web Chat interface pretty much exactly as you might have seen it in other Bot Framework tutorials. However, we also subscribe to events containing a `speak` attribute so we can speak the bot's responses aloud. Server-side, we always set a `speak` attribute on messages that we want to have spoken if the user has turned on speech.
 
-Speaking of speech, as previously mentioned, the Web Chat app supports the Speech Service, but its Speech Service support does not extend to our custom speech and voice models. To integrate custom speech with the Web app, then, we have used the following approaches.
+Speaking of speech, as previously mentioned, the Web Chat app supports the Speech Service, but its Speech Service support does not yet extend to our custom speech and voice models. To integrate custom speech with the Web app, then, we have used the following approaches.
 
 * For speech-to-text, we use the Speech Service JavaScript SDK's asynchronous speech recognition API. When the SDK recognizes a complete utterance, it is passed to a function that checks to see if the bot is being addressed (the utterance begins with "Mr. Hoover") and, if so, uses the Direct Line API to transmit the utterance to the bot. It appears in the chat window soon afterward.
 
@@ -314,7 +314,9 @@ Finally, check the browser's console (press F12 in Chrome or Edge, or Control-Sh
 
 ### Q: The bot doesn't respond, or tells me something seems to have gone wrong.
 
-A: The "gone wrong" message indicates an unhandled exception on the server side of the bot. You can view the server-side log in the Log Stream blade in the bot's App Service resource to help you figure it out. Some problems of this nature are capacity issues (too many sessions at once for your subscription plan) or are transient. Transient errors are more common when you have just published a new version of the bot from Visual Studio or restart the bot for some other reason. Just wait a moment and reload the page.
+A: The "gone wrong" message indicates an unhandled exception on the server side of the bot. You can view the server-side log in the Log Stream blade in the bot's App Service resource to help you figure it out. 
+
+Some problems of this nature are capacity issues (too many sessions at once for your subscription plan) or are transient. Transient errors are more common when you have just published a new version of the bot from Visual Studio or restart the bot for some other reason. Just wait a moment and reload the page.
 
 ### Q: The speech checkbox keeps turning off.
 
@@ -344,6 +346,6 @@ Q: In the Hoover Bot, nothing. These files are left over from the `EchoBot` samp
 
 A: For the server-side C# application, NuGet has you covered. 
 
-The Bot Framework JavaScript library is delivered by a CDN. Simply change the version number in the `<script>` tag's URL to the one you want, or `latest` to use the latest version.
+The Bot Framework JavaScript library is delivered by a CDN. Simply change the version number in the `<script>` tag's URL to the one you want, or `latest` to use the latest version. (You can also use `master` to try latest pre-release version.)
 
 The Speech Service JavaScript library is provided as part of this project and served from the Asame zure Web site that hosts the bot. [Download the latest version](https://aka.ms/csspeech/jsbrowserpackage) and copy `microsoft.cognitiveservices.speech.sdk.bundle-min.js` from the zip file into the Visual Studio project's `wwwroot` folder.
