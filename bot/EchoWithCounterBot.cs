@@ -1,17 +1,22 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
+using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Net.Http;
 using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 using AdaptiveCards;
+using Microsoft.Azure.CognitiveServices.Language.TextAnalytics;
+using Microsoft.Azure.CognitiveServices.Language.TextAnalytics.Models;
 using Microsoft.Azure.Search;
 using Microsoft.Azure.Search.Models;
 using Microsoft.Bot.Builder;
 using Microsoft.Bot.Schema;
 using Microsoft.Extensions.Logging;
+using Microsoft.Rest;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 
@@ -41,10 +46,14 @@ namespace Microsoft.BotBuilderSamples
         private static readonly string Hello = "Hello! Good to meet you. What are you interested in today?";
         private static readonly string YoureWelcome = "You're most welcome. How can I assist you?";
 
+        private static readonly object InitLock = new object();
+
         private static SearchIndexClient searchClient = null;
         private static Dictionary<string, string> cryptonyms = null;
         private static string searchUrl = null;
         private static HashSet<string> greeted;
+
+        private static ITextAnalyticsClient textAnalyticsClient;
 
         private Activity activity;
         private ITurnContext context;
@@ -66,25 +75,38 @@ namespace Microsoft.BotBuilderSamples
             var _logger = loggerFactory.CreateLogger<EchoWithCounterBot>();
             _logger.LogTrace("EchoBot turn start.");
 
-            if (searchClient == null)
+            // avoid multiple initialization of static fields
+            lock (InitLock)
             {
-                var searchname = Startup.Configuration.GetSection("searchName")?.Value;
-                var searchkey = Startup.Configuration.GetSection("searchKey")?.Value;
-                var searchindex = Startup.Configuration.GetSection("searchIndex")?.Value;
+                if (greeted == null)
+                {
+                    var config = Startup.Configuration;
 
-                // establish search service connection
-                searchClient = new SearchIndexClient(searchname, searchindex, new SearchCredentials(searchkey));
+                    var searchname = config.GetSection("searchName")?.Value;
+                    var searchkey = config.GetSection("searchKey")?.Value;
+                    var searchindex = config.GetSection("searchIndex")?.Value;
 
-                // read known cryptonyms (code names) from JSON file
-                cryptonyms = JsonConvert.DeserializeObject<Dictionary<string, string>>(File.ReadAllText("cia-cryptonyms.json"));
+                    // establish search service connection
+                    searchClient = new SearchIndexClient(searchname, searchindex, new SearchCredentials(searchkey));
 
-                // get search URL for your main JFK Files site instance
-                searchUrl = Startup.Configuration.GetSection("searchUrl")?.Value;
+                    // read known cryptonyms (code names) from JSON file
+                    cryptonyms = JsonConvert.DeserializeObject<Dictionary<string, string>>(File.ReadAllText("cia-cryptonyms.json"));
 
-                // create set that remembers who the bot has greeted (add default-user to avoid double greeting on web app)
-                greeted = new HashSet<string>();
-                greeted.Add("default-user");
+                    // get search URL for your main JFK Files site instance
+                    searchUrl = config.GetSection("searchUrl")?.Value;
 
+                    // create Text Analytics client
+                    var textAnalyticsKey = config.GetSection("textAnalyticsKey")?.Value;
+                    var textAnalyticsEndpoint = config.GetSection("textAnalyticsEndpoint")?.Value;
+                    textAnalyticsClient = new TextAnalyticsClient(new ApiKeyServiceClientCredentials(textAnalyticsKey))
+                    {
+                        Endpoint = textAnalyticsEndpoint,
+                    };
+
+                    // create set that remembers who the bot has greeted (add default-user to avoid double greeting on web app)
+                    greeted = new HashSet<string>();
+                    greeted.Add("default-user");
+                }
             }
         }
 
@@ -143,26 +165,21 @@ namespace Microsoft.BotBuilderSamples
                     var upperword = word.ToUpper();
                     if (cryptonyms.ContainsKey(upperword))
                     {
+                        // uppercase cryptonym in the question
                         question = new Regex("\\b" + word + "\\b").Replace(question, upperword);
                         SendSpeechReply($"{upperword}: {cryptonyms[upperword]}", cryptonyms[upperword]);
                         crypt_found = true;
                     }
                 }
 
-                // transform the question into a query by stripping noise words from the front and back
-                var frontwords = new Regex(@"^((a|an|am|with|hope|try[a-z]*|interest[a-z]+|mean[a-z]+|help|assist[a-z]*|find[a-z]*|look[a-z]*|seek[a-z]*|the|who|what|why|when|did|how|where|kill[a-z]*|assassin[a-z]*|is|um|uh|ah|and|now|has|have|had|are|were|was|out|does|please|can|will|you|show|tell|find|search|for|me|i|us|for|look|would|like|want|to|see|in|know|documents?|files?|pictures?|photos?|images?|of|on|more|results|about) +)+", RegexOptions.IgnoreCase);
-                var query = question.Substring(frontwords.Match(question).Length);
-                query = query.TrimEnd(".?!,;:".ToCharArray());
-                if (query.EndsWith(" mean") || query.EndsWith(" means"))
-                {
-                    query = query.Substring(0, query.Length - 5);
-                }
-                else if (query.EndsWith(" is"))
-                {
-                    query = query.Substring(0, query.Length - 3);
-                }
-
-                query = query.Trim();
+                // use Text Analytics to get key phrases from the question, which will become the search query
+                var keyphrases = await textAnalyticsClient.KeyPhrasesAsync(
+                    new MultiLanguageBatchInput(
+                        new List<MultiLanguageInput>()
+                        {
+                          new MultiLanguageInput("en", "0", question),
+                        }));
+                var query = string.Join(", ", keyphrases.Documents[0].KeyPhrases);
 
                 // initiate the search
                 var parameters = new SearchParameters() { Top = MaxResults };   // get top n results
@@ -189,9 +206,9 @@ namespace Microsoft.BotBuilderSamples
                     // all results should have thumbnail images, but just in case, look before leaping
                     if (enriched.TryGetValue("/document/normalized_images/*/imageStoreUri", out var images))
                     {
-                        // get URI of thumbnail of first content page.
-                        // if the document has multiple pages, first page is an ID form
-                        // the second page is the first page of interest
+                        // get URI of thumbnail of first content page
+                        // if the document has multiple pages, first page is an identification form
+                        // and so the second page is the first page of interest; use its thumbnail
                         var thumbs = new List<string>(images.Values<string>());
                         var picurl = thumbs[thumbs.Count > 1 ? 1 : 0];
 
@@ -249,16 +266,19 @@ namespace Microsoft.BotBuilderSamples
                     };
                 }
 
-                // send the reply if we have search results or we didn't find a cryptonym
+                // send the reply if we have search results OR if we didn't find a cryptonym
+                // if we found a cryptonym but no search results, no need to send "no results"
+                // (the user considers the cryptonym hit a result, and will find "no results" puzzling)
                 if (reply.Attachments.Count > 1 || !crypt_found)
                 {
                     context.SendActivityAsync(reply);
                 }
             }
+
             // Send initial greeting
             // Each user in the chat (including the bot) is added via a ConversationUpdate message
-            // Check each user to make sure it's not the bot before greeting, and only greet each user
-            else if (type == ActivityTypes.ConversationUpdate) // || type == ActivityTypes.Event)
+            // Check each user to make sure it's not the bot before greeting, and only greet each user once
+            else if (type == ActivityTypes.ConversationUpdate)
             {
                 if (activity.MembersAdded != null) {
                     foreach (var member in activity.MembersAdded)
@@ -280,7 +300,6 @@ namespace Microsoft.BotBuilderSamples
             reply.Text = text;
             reply.Speak = speech == null ? text : speech;
             context.SendActivityAsync(reply);
-
         }
 
         private void SendTypingIndicator()
@@ -333,6 +352,24 @@ namespace Microsoft.BotBuilderSamples
                 };
             }
 
+        }
+
+        // HTTP client credentials containing an API key (used with Text Analytics client)
+        private class ApiKeyServiceClientCredentials : ServiceClientCredentials
+        {
+            private string subscriptionKey;
+
+            public ApiKeyServiceClientCredentials(string key) 
+                : base()
+            {
+                subscriptionKey = key;
+            }
+
+            public override Task ProcessHttpRequestAsync(HttpRequestMessage request, CancellationToken cancellationToken)
+            {
+                request.Headers.Add("Ocp-Apim-Subscription-Key", subscriptionKey);
+                return base.ProcessHttpRequestAsync(request, cancellationToken);
+            }
         }
 
     }
