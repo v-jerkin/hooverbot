@@ -179,7 +179,10 @@ namespace Microsoft.BotBuilderSamples
                         {
                           new MultiLanguageInput("en", "0", question),
                         }));
-                var query = string.Join(", ", keyphrases.Documents[0].KeyPhrases);
+                var query = string.Join(", ", keyphrases.Documents[0].KeyPhrases).Trim();
+
+                // if we didn't find any key phrases, punt
+                query = query == string.Empty ? question : query;
 
                 // initiate the search
                 var parameters = new SearchParameters() { Top = MaxResults };   // get top n results
@@ -192,7 +195,7 @@ namespace Microsoft.BotBuilderSamples
                 } while (!search.Wait(2000));
 
                 var results = search.Result.Results;
-                SendTypingIndicator();
+                SendTypingIndicator();  // to cover building and sending the response
 
                 // create a reply
                 var reply = activity.CreateReply();
