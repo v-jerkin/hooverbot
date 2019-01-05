@@ -76,6 +76,7 @@ namespace Microsoft.BotBuilderSamples
             _logger.LogTrace("EchoBot turn start.");
 
             // avoid multiple initialization of static fields
+            // it doesn't hurt anything in this case, but it's bad practice
             lock (InitLock)
             {
                 if (greeted == null)
@@ -172,16 +173,71 @@ namespace Microsoft.BotBuilderSamples
                     }
                 }
 
-                // use Text Analytics to get key phrases from the question, which will become the search query
-                var keyphrases = await textAnalyticsClient.KeyPhrasesAsync(
-                    new MultiLanguageBatchInput(
-                        new List<MultiLanguageInput>()
-                        {
-                          new MultiLanguageInput("en", "0", question),
-                        }));
-                var query = string.Join(", ", keyphrases.Documents[0].KeyPhrases).Trim();
+                // use Text Analytics to get key phrases and entities from the question, which will become the search query
+                // we will use the same Text Analytics query for both key words and entities
+                var doc = new MultiLanguageBatchInput(
+                    new List<MultiLanguageInput>()
+                    {
+                        new MultiLanguageInput("en", "0", question + "? " + question + "? "),
+                    });
 
-                // if we didn't find any key phrases, punt
+                // do these requests asynchronously so both can proceed at the same time
+                var t_keyphrases = textAnalyticsClient.KeyPhrasesAsync(doc);
+                var t_entities = textAnalyticsClient.EntitiesAsync(doc);
+                var keyphrases = await t_keyphrases;
+                var entities = await t_entities;
+
+                // build up the query string using the results from the Text Analytics queries
+                var terms = new HashSet<string>();
+
+                // PROCESS KEY PHRASES
+                // we'll slightly modify the returned key phrases.
+                // those ending in 's or ' will have their possessive removed
+                // those ending in ment or ion will be omitted entirely; these are often recognized as parts of keywords but usually are not useful search terms
+                foreach (var item in keyphrases.Documents[0].KeyPhrases)
+                {
+                    var phrase = item;
+                    var index = phrase.IndexOf("ing of ");
+                    if (index > 0) {
+                        phrase = phrase.Substring(index + 7);
+                    }
+                    foreach (var word in phrase.Split())
+                    {
+                        var term = word;
+
+                        if (term.EndsWith("'s"))
+                        {
+                            term = term.TrimEnd('s').TrimEnd('\'');
+                        }
+                        else if (term.EndsWith("'"))
+                        {
+                            term = term.TrimEnd('\'');
+                        }
+
+                        if (term.EndsWith("ment") || term.EndsWith("ion"))
+                        {
+                            continue;
+                        }
+
+                        terms.Add(term);
+                    }
+                }
+
+                // PROCESS ENTITIES
+                // we don't directly use the names of recognized entities. instead, we use the term from the user's query that was recognized as an entity.
+                // that is, if they entered JFK, the recognized entiity is John F. Kennedy, but we add the user's term JFK to the query.
+                // in other words, certain words beinga recognized as entities simply tells us they're important to search for, but we still search for what the user entered.
+                foreach (var item in entities.Documents[0].Entities)
+                {
+                    foreach (var match in item.Matches)
+                    {
+                        terms.UnionWith(match.Text.Split());
+                    }
+                }
+
+                var query = string.Join(" ", terms).Trim();
+
+                // if we failed to make good search terms, punt back to the user's original query
                 query = query == string.Empty ? question : query;
 
                 // initiate the search
@@ -307,11 +363,8 @@ namespace Microsoft.BotBuilderSamples
 
         private void SendTypingIndicator()
         {
-            if (typing == null)
-            {
-                typing = activity.CreateReply();
-                typing.Type = ActivityTypes.Typing;
-            }
+            var typing = activity.CreateReply();
+            typing.Type = ActivityTypes.Typing;
             context.SendActivityAsync(typing);
         }
 
