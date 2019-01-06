@@ -421,7 +421,6 @@ namespace Microsoft.BotBuilderSamples
         {
             var typing = activity.CreateReply();
             typing.Type = ActivityTypes.Typing;
-            typing.Text = "Thinking";
             context.SendActivityAsync(typing);
             logger.LogTrace($"HOOVERBOT {turnid} sent typing indicator");
         }
