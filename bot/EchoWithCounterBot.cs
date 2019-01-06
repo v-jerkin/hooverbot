@@ -55,6 +55,7 @@ namespace Microsoft.BotBuilderSamples
 
         private Activity activity;
         private ITurnContext context;
+        private Guid turnid;
 
         private ILogger logger;
 
@@ -66,13 +67,15 @@ namespace Microsoft.BotBuilderSamples
         /// <seealso cref="https://docs.microsoft.com/en-us/aspnet/core/fundamentals/logging/?view=aspnetcore-2.1#windows-eventlog-provider"/>
         public EchoWithCounterBot(EchoBotAccessors accessors, ILoggerFactory loggerFactory)
         {
+            turnid = System.Guid.NewGuid();
+
             if (loggerFactory == null)
             {
                 throw new System.ArgumentNullException(nameof(loggerFactory));
             }
 
             logger = loggerFactory.CreateLogger<EchoWithCounterBot>();
-            logger.LogTrace("HooverBot turn start.");
+            logger.LogTrace($"HOOVERBOT {turnid} turn start.");
 
             // avoid multiple initialization of static fields
             // it doesn't hurt anything in this case, but it's bad practice
@@ -110,7 +113,7 @@ namespace Microsoft.BotBuilderSamples
         }
 
         /// <summary>
-        /// Every conversation turn for our Echo Bot will call this method.
+        /// Every conversation turn for our Bot will call this method.
         /// There are no dialogs used, since it's "single turn" processing, meaning a single
         /// request and response.
         /// </summary>
@@ -135,25 +138,25 @@ namespace Microsoft.BotBuilderSamples
             {
                 // respond to greetings and social niceties
                 var question = activity.Text.ToLower();
-                logger.LogTrace($"HooverBot received message: {question}.");
+                logger.LogTrace($"HOOVERBOT {turnid} received message: {question}.");
 
                 if (question.Contains("welcome"))
                 {
-                    logger.LogTrace("HooverBot responding to welcome.");
+                    logger.LogTrace($"HOOVERBOT {turnid} responding to welcome.");
                     SendCacheableSpeechReply(Thanks);
                     return;
                 }
 
                 if (question.Contains("hello"))
                 {
-                    logger.LogTrace("HooverBot responding to hello.");
+                    logger.LogTrace($"HOOVERBOT {turnid} responding to hello.");
                     SendCacheableSpeechReply(Hello);
                     return;
                 }
 
                 if (question.Contains("thank"))
                 {
-                    logger.LogTrace("HooverBot responding to thanks.");
+                    logger.LogTrace($"HOOVERBOT {turnid} responding to thanks.");
                     SendCacheableSpeechReply(YoureWelcome);
                     return;
                 }
@@ -176,12 +179,12 @@ namespace Microsoft.BotBuilderSamples
                         // uppercase cryptonym in the question
                         question = new Regex("\\b" + word + "\\b").Replace(question, upperword);
                         terms.Add(upperword);       // add them to our Azure Search terms
-                        SendSpeechReply($"{upperword}: {cryptonyms[upperword]}", cryptonyms[upperword]);
+                        SendSpeechReply($"**{upperword}**: {cryptonyms[upperword]}", cryptonyms[upperword]);
                         crypt_found = true;
                     }
                 }
 
-                logger.LogTrace($"HooverBot found cryptonyms {string.Join(" ", terms)}.");
+                logger.LogTrace($"HOOVERBOT {turnid} found cryptonyms {string.Join(" ", terms)}.");
 
                 // use Text Analytics to get key phrases and entities from the question, which will become the search query
                 // we will use the same Text Analytics query for both key words and entities
@@ -192,12 +195,12 @@ namespace Microsoft.BotBuilderSamples
                     });
 
                 // do the Text Analytics requests asynchronously so both can proceed at the same time
-                logger.LogTrace("HooverBot making Text Analytics requests.");
+                logger.LogTrace($"HOOVERBOT {turnid} making Text Analytics requests.");
                 var t_keyphrases = textAnalyticsClient.KeyPhrasesAsync(doc);
                 var t_entities = textAnalyticsClient.EntitiesAsync(doc);
                 var keyphrases = await t_keyphrases;
                 var entities = await t_entities;
-                logger.LogTrace("HooverBot received Text Analytics responses.");
+                logger.LogTrace($"HOOVERBOT {turnid} received Text Analytics responses.");
 
                 // build up the query string using the results from the Text Analytics queries
 
@@ -208,7 +211,7 @@ namespace Microsoft.BotBuilderSamples
                 // words ending in -ment or -ion will be omitted entirely; these are often recognized as parts of keywords but usually are not useful search terms
                 foreach (var phrase in keyphrases.Documents[0].KeyPhrases)
                 {
-                    logger.LogTrace($"HooverBot processing Key Phrase: {phrase}");
+                    logger.LogTrace($"HOOVERBOT {turnid} processing Key Phrase: {phrase}");
                     if (!phrase.Contains("ing of "))
                     {
                         foreach (var word in phrase.Split())
@@ -231,14 +234,14 @@ namespace Microsoft.BotBuilderSamples
 
                 // PROCESS ENTITIES
                 // we don't directly use the names of recognized entities. instead, we use the term from the user's query that was recognized as an entity.
-                // that is, if they entered JFK, the recognized entiity is John F. Kennedy, but we add the user's term, JFK, to the query.
+                // that is, if they entered Oswald, the recognized entiity is Lee Harvey Oswald, but we add the user's term, JFK, to the query.
                 // in other words, certain words beinga recognized as entities simply tells us they're important to search for, but we still search for what the user entered.
                 foreach (var entity in entities.Documents[0].Entities)
                 {
-                    logger.LogTrace($"HooverBot processing Entity: {entity}");
+                    logger.LogTrace($"HOOVERBOT {turnid} processing Entity: {entity.Name}");
                     foreach (var match in entity.Matches)
                     {
-                        logger.LogTrace($"-- derived from: {match.Text}");
+                        logger.LogTrace($"HOOVERBOT {turnid} Entity {entity.Name} derived from: {match.Text}");
                         terms.UnionWith(match.Text.Split());
                     }
                 }
@@ -252,30 +255,21 @@ namespace Microsoft.BotBuilderSamples
                     displayquery = query = question;
                 }
 
-                // add Kennedy's cryptonym for searches about him since seearching for his name or initials will matche virtually every document
-                var lowerquestion = question.ToLower();
-                if ((lowerquestion.Contains("kennedy") && lowerquestion.Contains("John")) || lowerquestion.Contains("jfk"))
-                {
-                    query += " GIPIDEAL";
-                    logger.LogTrace($"HooverBot added GPIDEAL cryptonym since original query mentinons JFK");
-                }
-
                 // initiate the search
                 var parameters = new SearchParameters() { Top = MaxResults };   // get top n results
                 var search = searchClient.Documents.SearchAsync(query, parameters);
-                logger.LogTrace($"HooverBot searching JFK Files for derived query: {query}");
+                logger.LogTrace($"HOOVERBOT {turnid} searching JFK Files for derived query: {query}");
 
                 // send typing indicator every 2 sec while we wait for search to complete
                 do
                 {
                     SendTypingIndicator();
-                    logger.LogTrace("HooverBot sent typing indicator while awaiting search response");
                 }
                 while (!search.Wait(2000));
 
                 var results = search.Result.Results;
                 SendTypingIndicator();  // to cover building and sending the response
-                logger.LogTrace($"HooverBot received {results.Count} results");
+                logger.LogTrace($"HOOVERBOT {turnid} received {results.Count} search results");
 
                 // create a reply
                 var reply = activity.CreateReply();
@@ -301,7 +295,7 @@ namespace Microsoft.BotBuilderSamples
                         var token = document["metadata_storage_sas_token"].Value<string>();
                         var docurl = $"{filename}?{token}";
 
-                        logger.LogTrace($"HooverBot added search result to response: {docurl}");
+                        logger.LogTrace($"HOOVERBOT {turnid} added search result to response: {docurl}");
 
                         // Get the text from the document. This includes OCR'd printed and
                         // handwritten text, people recognized in photos, and more.
@@ -324,11 +318,12 @@ namespace Microsoft.BotBuilderSamples
                 if (reply.Attachments.Count == 0)
                 {
                     reply.Text = $"Sorry, I didn't find any documents matching __{displayquery}__.";
+                    reply.Speak = "Sorry, I didn't find any documents about that.";
                 }
                 else
                 {
                     var documents = reply.Attachments.Count > 1 ? "some documents" : "a document";
-                    reply.Text = $"I found {documents} about __{displayquery}__ you may be interested in.";
+                    reply.Text = $"I found {documents} about **{displayquery}** you may be interested in.";
                     reply.Speak = $"I found {documents} you may be interested in.";
                     if (crypt_found)
                     {
@@ -339,28 +334,30 @@ namespace Microsoft.BotBuilderSamples
                     reply.AttachmentLayout = AttachmentLayoutTypes.Carousel;
 
                     // add "Dig Deeper" button
+                    var searchlink = searchUrl + System.Uri.EscapeDataString(query);
                     reply.SuggestedActions = new SuggestedActions()
                     {
                         Actions = new List<CardAction>()
-                    {
-                        new CardAction()
                         {
-                            Title = "Dig Deeper",
-                            Type = ActionTypes.OpenUrl,
-                            Value = searchUrl + System.Uri.EscapeDataString(query),
+                            new CardAction()
+                            {
+                                Title = "Dig Deeper",
+                                Type = ActionTypes.OpenUrl,
+                                Value = searchlink,
+                            },
                         },
-                    },
                     };
-                    logger.LogTrace("HooverBot added Dig Deeper button to response");
+                    logger.LogTrace($"HOOVERBOT {turnid} added Dig Deeper {searchlink}");
                 }
 
                 // send the reply if we have search results OR if we didn't find a cryptonym
                 // if we found a cryptonym but no search results, no need to send "no results"
-                // (the user considers the cryptonym hit a result, and will find "no results" puzzling)
+                // (the cryptonym hit IS a result, and the user will find "no results" puzzling)
                 if (reply.Attachments.Count > 1 || !crypt_found)
                 {
+                    reply.Properties["cache-speech"] = true;
                     context.SendActivityAsync(reply);
-                    logger.LogTrace($"HooverBot sent search response");
+                    logger.LogTrace($"HOOVERBOT {turnid} sent search response");
                 }
             }
 
@@ -377,7 +374,7 @@ namespace Microsoft.BotBuilderSamples
                         {
                             SendTextOnlyReply(Greeting);
                             greeted.Add(member.Id);
-                            logger.LogTrace($"HooverBot greeted user: {member.Id}");
+                            logger.LogTrace($"HOOVERBOT {turnid} greeted user: {member.Name} {member.Id}");
                             break;
                         }
                     }
@@ -391,6 +388,7 @@ namespace Microsoft.BotBuilderSamples
             var reply = activity.CreateReply();
             reply.Text = text;
             context.SendActivityAsync(reply);
+            logger.LogTrace($"HOOVERBOT {turnid} sent text-only reply: {text.Substring(0, Math.Min(50, text.Length))}");
         }
 
         // Send a reply with a speak attribute so it will be spoken by the client
@@ -400,6 +398,7 @@ namespace Microsoft.BotBuilderSamples
             reply.Text = text;
             reply.Speak = speech == null ? text : speech;
             context.SendActivityAsync(reply);
+            logger.LogTrace($"HOOVERBOT {turnid} sent speech reply: {text.Substring(0, Math.Min(50, text.Length))}");
         }
 
         // Send a reply with a speak attribute so it will be spoken by the client
@@ -412,16 +411,19 @@ namespace Microsoft.BotBuilderSamples
             reply.Properties["cache-speech"] = true;
             reply.Speak = speech == null ? text : speech;
             context.SendActivityAsync(reply);
+            logger.LogTrace($"HOOVERBOT {turnid} sent cacheable speech reply: {text.Substring(0, Math.Min(50, text.Length))}");
         }
 
-        // Send a typing indicator every 2 sec while other work (e.g. database search) is in progress
+        // Send a typing indicator while other work (e.g. database search) is in progress.
         // A single typing indicator message keeps the "..." animation visible for up to three seconds
         // or until next message is received by the client.
         private void SendTypingIndicator()
         {
             var typing = activity.CreateReply();
             typing.Type = ActivityTypes.Typing;
+            typing.Text = "Thinking";
             context.SendActivityAsync(typing);
+            logger.LogTrace($"HOOVERBOT {turnid} sent typing indicator");
         }
 
         // Result card layout using a simple adaptive layout

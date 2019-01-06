@@ -3,12 +3,12 @@
 <head>
     <script>
         // Bot settings
-        const botSecret = "from the Direct Line channel in the Channels blade of your Web App Bot";
+        const botSecret = "2ypo-U4TtY8.cwA.0RI.cAL0MXvZRBRTLdA2tbezZr2ZULny4ICvN1NyoM6pQfs";
 
         // Speech settings
-        const speechKey = "from the Keys blade of your Speech Service instance in the Azure portal";
-        const speechRecognitionEndpoint = "10-minute wss URL from the Endpoints page of the Custom Speech portal";
-        const speechSynthesisEndpoint = "from the Endpoints page of the Custom Voice portal";
+        const speechKey = "f6870631fc0e43a18dc990cdfd0c4850";
+        const speechRecognitionEndpoint = "wss://westus.stt.speech.microsoft.com/speech/recognition/conversation/cognitiveservices/v1?cid=9c90df95-900f-4730-8293-dbf67c3ccb55";
+        const speechSynthesisEndpoint = "https://westus.voice.speech.microsoft.com/cognitiveservices/v1?deploymentId=00e10d1a-53c9-4bc7-98aa-04d2f4c33613";
         const tokenEndpoint = "https://westus.api.cognitive.microsoft.com/sts/v1.0/issueToken";
     </script>
     <style type="text/css">
@@ -92,7 +92,7 @@
         // subscribe to messages so we can speak them
         connection.activity$
             .filter(activity => activity.type === "message" && activity.speak)
-            .subscribe(activity => say(activity.speak));
+            .subscribe(activity => say(activity.speak, activity["cache-speech"]));
 
         // Web Chat only sends ConversationUpdate after the first message is sent.
         // So this event is only sent to force ConversationUpdate to be set. (Our bot doesn't do anything with it)
@@ -167,7 +167,6 @@
                 document.getElementById("title").innerHTML = document.getElementById("title").innerHTML.split("<br>")[0];
                 say = dontspeak;
             }
-
         }
 
         // play a zero-length file to unlock audio. must be called on a user-initiated thread (e.g. UI event handler)
@@ -187,12 +186,16 @@
         var requests = [];
         var playlist = [];
 
-        // the flags are used to manage automatic start of playback queues on call to speak()
+        // cache for audio objects so we don't repeatedly request the same text from Speech Service
+        var audcache = {};
+
+        // flags used to manage automatic start of playback queues on call to speak()
         var loading = false;
         var playing = false;
         
         // manage the speech queues, play the audio files, handle token refresh as needed
-        function speak(text) {
+        function speak(text, cacheable) {
+            console.log(text, cacheable);
             if (!token) {
                 var req = new XMLHttpRequest();
                 req.open("POST", tokenEndpoint, true);
@@ -205,11 +208,16 @@
                     token = req.response;
                     enqueue();
                 }
-                req.send(null);
+                req.send();
             }
             else enqueue();
+            return;
 
             function enqueue() {
+                if (audcache[text] !== undefined) {
+                    playlist.push(audcache[text]);
+                    return startplaying();
+                }
                 var req = new XMLHttpRequest();
                 req.responseType = "blob";
                 req.open("POST", speechSynthesisEndpoint, true);
@@ -218,26 +226,23 @@
                 // we can't play until we've received tho whole file, so use the smallest file size possible
                 req.setRequestHeader("X-Microsoft-OutputFormat", "audio-16khz-32kbitrate-mono-mp3");
                 req.onload = (function () {
-                    playlist.push(function () {
-                        var bloburl = URL.createObjectURL(req.response);
-                        var player = new Audio();
-                        player.autoplay = false;
-                        player.src = bloburl;
-                        player.onended = function () {
-                            playlist.shift();
-                            playnext();
-                        }
-                        player.play();
-                    });
-                    if (!playing) {
-                        greeted && location.protocol == "https:" && speechRecognizer.stopContinuousRecognitionAsync();
+                    var bloburl = URL.createObjectURL(req.response);
+                    var player = new Audio();
+                    player.autoplay = false;
+                    player.src = bloburl;
+                    player.onended = function () {
+                        playlist.shift();
                         playnext();
                     }
+                    if (cacheable === true) audcache[text] = player;
+                    playlist.push(player);
+                    startplaying();
                     requests.shift();
                     nextreq();
                 });
                 requests.push(_ => req.send(text));
                 if (!loading) nextreq();
+                return;
 
                 function nextreq() {
                     requests.length && requests[0]();
@@ -245,15 +250,22 @@
                 }
 
                 function playnext() {
-                    playlist.length && playlist[0]();
+                    playlist.length && playlist[0].play();
                     playing = playlist.length > 0;
                     if (!playing) location.protocol == "https:" && speechRecognizer.startContinuousRecognitionAsync();
+                }
+
+                function startplaying() {
+                    if (!playing) {
+                        greeted && location.protocol == "https:" && speechRecognizer.stopContinuousRecognitionAsync();
+                        playnext();
+                    }
                 }
             }
         }
 
         // null speech function for when speech is disabled
-        function dontspeak(text) { };   // don't tell me 'cause it hurts
+        function dontspeak(text, cacheable) { };   // don't tell me 'cause it hurts
 
         var say = dontspeak;
 
