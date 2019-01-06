@@ -195,7 +195,6 @@
         
         // manage the speech queues, play the audio files, handle token refresh as needed
         function speak(text, cacheable) {
-            console.log(text, cacheable);
             if (!token) {
                 var req = new XMLHttpRequest();
                 req.open("POST", tokenEndpoint, true);
