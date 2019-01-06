@@ -104,9 +104,8 @@ namespace Microsoft.BotBuilderSamples
                         Endpoint = textAnalyticsEndpoint,
                     };
 
-                    // create set that remembers who the bot has greeted (add default-user to avoid double greeting on web app)
-                    greeted = new HashSet<string>();
-                    greeted.Add("default-user");
+                    // create set that remembers who the bot has greeted (add default-user to avoid double-greeting)
+                    greeted = new HashSet<string>() { "default-user" };
                 }
             }
         }
@@ -141,21 +140,25 @@ namespace Microsoft.BotBuilderSamples
 
                 if (question.Contains("welcome"))
                 {
-                    SendSpeechReply(Thanks);
+                    SendCacheableSpeechReply(Thanks);
                     return;
                 }
                 if (question.Contains("hello"))
                 {
-                    SendSpeechReply(Hello);
+                    SendCacheableSpeechReply(Hello);
                     return;
                 }
                 if (question.Contains("thank"))
                 {
-                    SendSpeechReply(YoureWelcome);
+                    SendCacheableSpeechReply(YoureWelcome);
                     return;
                 }
 
-                question = activity.Text;
+                question = activity.Text;   // back to our original value with case as user entered it
+
+                // HashSet will hold the search terms for the Azure Search query
+                // We use a hashset since we want to include each term only once
+                var terms = new HashSet<string>();
 
                 // look for cryptomyms and send the definition of any found
                 Regex words = new Regex(@"\b(\w+)\b", RegexOptions.Compiled);
@@ -168,6 +171,7 @@ namespace Microsoft.BotBuilderSamples
                     {
                         // uppercase cryptonym in the question
                         question = new Regex("\\b" + word + "\\b").Replace(question, upperword);
+                        terms.Add(upperword);       // add them to our Azure Search terms
                         SendSpeechReply($"{upperword}: {cryptonyms[upperword]}", cryptonyms[upperword]);
                         crypt_found = true;
                     }
@@ -178,54 +182,47 @@ namespace Microsoft.BotBuilderSamples
                 var doc = new MultiLanguageBatchInput(
                     new List<MultiLanguageInput>()
                     {
-                        new MultiLanguageInput("en", "0", question + "? " + question + "? "),
+                        new MultiLanguageInput("en", "0", question),
                     });
 
-                // do these requests asynchronously so both can proceed at the same time
+                // do the Text Analytics requests asynchronously so both can proceed at the same time
                 var t_keyphrases = textAnalyticsClient.KeyPhrasesAsync(doc);
                 var t_entities = textAnalyticsClient.EntitiesAsync(doc);
                 var keyphrases = await t_keyphrases;
                 var entities = await t_entities;
 
                 // build up the query string using the results from the Text Analytics queries
-                var terms = new HashSet<string>();
 
                 // PROCESS KEY PHRASES
-                // we'll slightly modify the returned key phrases.
-                // those ending in 's or ' will have their possessive removed
-                // those ending in ment or ion will be omitted entirely; these are often recognized as parts of keywords but usually are not useful search terms
+                // we'll tweak the returned key phrases as they are not exactly what we want for a search
+                // any term of form "-ing of X" (e.g. "meaning of GPIDEAL") will be skipped since this is probably a cryptonym we've already handled
+                // words ending in 's or ' (e.g. "Kennedy's") will have their possessive removed
+                // words ending in -ment or -ion will be omitted entirely; these are often recognized as parts of keywords but usually are not useful search terms
                 foreach (var item in keyphrases.Documents[0].KeyPhrases)
                 {
-                    var phrase = item;
-                    var index = phrase.IndexOf("ing of ");
-                    if (index > 0) {
-                        phrase = phrase.Substring(index + 7);
-                    }
-                    foreach (var word in phrase.Split())
-                    {
-                        var term = word;
 
-                        if (term.EndsWith("'s"))
+                    if (!item.Contains("ing of ")) {
+                        foreach (var word in item.Split())
                         {
-                            term = term.TrimEnd('s').TrimEnd('\'');
+                            if (word.EndsWith("'s"))
+                            {
+                                terms.Add(word.TrimEnd('s').TrimEnd('\''));
+                            }
+                            else if (word.EndsWith("'"))
+                            {
+                                terms.Add(word.TrimEnd('\''));
+                            }
+                            else if (!word.EndsWith("ment") && !word.EndsWith("ion"))
+                            {
+                                terms.Add(word);
+                            }
                         }
-                        else if (term.EndsWith("'"))
-                        {
-                            term = term.TrimEnd('\'');
-                        }
-
-                        if (term.EndsWith("ment") || term.EndsWith("ion"))
-                        {
-                            continue;
-                        }
-
-                        terms.Add(term);
                     }
                 }
 
                 // PROCESS ENTITIES
                 // we don't directly use the names of recognized entities. instead, we use the term from the user's query that was recognized as an entity.
-                // that is, if they entered JFK, the recognized entiity is John F. Kennedy, but we add the user's term JFK to the query.
+                // that is, if they entered JFK, the recognized entiity is John F. Kennedy, but we add the user's term, JFK, to the query.
                 // in other words, certain words beinga recognized as entities simply tells us they're important to search for, but we still search for what the user entered.
                 foreach (var item in entities.Documents[0].Entities)
                 {
@@ -236,15 +233,25 @@ namespace Microsoft.BotBuilderSamples
                 }
 
                 var query = string.Join(" ", terms).Trim();
+                var displayquery = query;
 
-                // if we failed to make good search terms, punt back to the user's original query
-                query = query == string.Empty ? question : query;
+                // if we failed to build a search, punt back to the user's original query
+                if (query == string.Empty)
+                {
+                    displayquery = query = question;
+                }
+
+                // add Kennedy's cryptonym for searches about him since seearching for his name or initials will matche virtually every document
+                if (terms.Contains("Kennedy") && terms.Contains("John") || terms.Contains("JFK"))
+                {
+                    query += " GIPIDEAL";
+                }
 
                 // initiate the search
                 var parameters = new SearchParameters() { Top = MaxResults };   // get top n results
                 var search = searchClient.Documents.SearchAsync(query, parameters);
 
-                // send typing indicator while we wait for search to complete
+                // send typing indicator every 2 sec while we wait for search to complete
                 do
                 {
                     SendTypingIndicator();
@@ -277,8 +284,8 @@ namespace Microsoft.BotBuilderSamples
                         var token = document["metadata_storage_sas_token"].Value<string>();
                         var docurl = $"{filename}?{token}";
 
-                        // get the text from the document. this includes OCR'd printed and
-                        // handwritten text, people recognized in photos, and more
+                        // Get the text from the document. This includes OCR'd printed and
+                        // handwritten text, people recognized in photos, and more.
                         // As with the image, try to get the second page's text if it's multi-page
                         var text = enriched["/document/finalText"].Value<string>();
                         if (thumbs.Count > 1)
@@ -287,27 +294,28 @@ namespace Microsoft.BotBuilderSamples
                             var page2 = text.IndexOf(sep);
                             text = page2 > 0 ? text.Substring(page2 + sep.Length) : text;
                         }
+
                         // create card for this search result and attach it to the reply
                         var card = new ResultCard(picurl, text, docurl);
                         reply.Attachments.Add(card.ToAttachment());
                     }
                 }
 
-                // Add message describing results, if any
+                // Add text describing results, if any
                 if (reply.Attachments.Count == 0)
                 {
-                    reply.Text = $"I'm sorry, I can't find any documents matching \"{query}\"";
+                    reply.Text = $"Sorry, I didn't find any documents matching __{displayquery}__.";
                 }
                 else
                 {
                     var documents = reply.Attachments.Count > 1 ? "some documents" : "a document";
-                    reply.Text = $"I found {documents} about \"{query}\" you may be interested in.";
+                    reply.Text = $"I found {documents} about __{displayquery}__ you may be interested in.";
                     reply.Speak = $"I found {documents} you may be interested in.";
                     if (crypt_found)
                     {
                         reply.Speak = "Also, " + reply.Speak;
                     }
-
+                    reply.Properties["cache-speech"] = true;
                     reply.AttachmentLayout = AttachmentLayoutTypes.Carousel;
 
                     // add "Dig Deeper" button
@@ -344,7 +352,7 @@ namespace Microsoft.BotBuilderSamples
                     {
                         if (!greeted.Contains(member.Id))
                         {
-                            context.SendActivityAsync(Greeting);
+                            SendTextOnlyReply(Greeting);
                             greeted.Add(member.Id);
                             break;
                         }
@@ -353,7 +361,16 @@ namespace Microsoft.BotBuilderSamples
             }
         }
 
-        private void SendSpeechReply(string text, string speech=null)
+        // Send a text-only reply (no speech)
+        private void SendTextOnlyReply(string text, string speech = null)
+        {
+            var reply = activity.CreateReply();
+            reply.Text = text;
+            context.SendActivityAsync(reply);
+        }
+
+        // Send a reply with a speak attribute so it will be spoken by the client
+        private void SendSpeechReply(string text, string speech = null)
         {
             var reply = activity.CreateReply();
             reply.Text = text;
@@ -361,6 +378,21 @@ namespace Microsoft.BotBuilderSamples
             context.SendActivityAsync(reply);
         }
 
+        // Send a reply with a speak attribute so it will be spoken by the client
+        // Also include a value attribute indicating that the speech may be cached
+        // Common boilerplate replies are good candidates for caching
+        private void SendCacheableSpeechReply(string text, string speech = null)
+        {
+            var reply = activity.CreateReply();
+            reply.Text = text;
+            reply.Properties["cache-speech"] = true;
+            reply.Speak = speech == null ? text : speech;
+            context.SendActivityAsync(reply);
+        }
+
+        // Send a typing indicator while other work (e.g. database search) is in progress
+        // A single typing indicator message keeps the "..." animation visible for up to three seconds
+        // or until next message is received by the client.
         private void SendTypingIndicator()
         {
             var typing = activity.CreateReply();
@@ -371,7 +403,7 @@ namespace Microsoft.BotBuilderSamples
         // Result card layout using a simple adaptive layout
         private class ResultCard : AdaptiveCard
         {
-            private int maxlen = 500;
+            private int maxlen = 200;
 
             public ResultCard(string image_url, string text, string action_url)
             {
@@ -410,7 +442,7 @@ namespace Microsoft.BotBuilderSamples
 
         }
 
-        // HTTP client credentials containing an API key (used with Text Analytics client)
+        // HTTP client credentials class containing an API key (used with Text Analytics client)
         private class ApiKeyServiceClientCredentials : ServiceClientCredentials
         {
             private string subscriptionKey;
