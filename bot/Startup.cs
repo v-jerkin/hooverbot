@@ -24,9 +24,17 @@ namespace Microsoft.BotBuilderSamples
     /// </summary>
     public class Startup
     {
+        public static IConfiguration Configuration;
+
         private ILoggerFactory _loggerFactory;
         private bool _isProduction = false;
 
+        /// <summary>
+        /// Gets the configuration that represents a set of key/value application configuration properties.
+        /// </summary>
+        /// <param name="env">
+        /// The <see cref="IConfiguration"/> that represents a set of key/value application configuration properties.
+        /// </param>
         public Startup(IHostingEnvironment env)
         {
             _isProduction = env.IsProduction();
@@ -39,14 +47,6 @@ namespace Microsoft.BotBuilderSamples
 
             Configuration = builder.Build();
         }
-
-        /// <summary>
-        /// Gets the configuration that represents a set of key/value application configuration properties.
-        /// </summary>
-        /// <value>
-        /// The <see cref="IConfiguration"/> that represents a set of key/value application configuration properties.
-        /// </value>
-        public static IConfiguration Configuration;
 
         /// <summary>
         /// This method gets called by the runtime. Use this method to add services to the container.
@@ -68,6 +68,7 @@ namespace Microsoft.BotBuilderSamples
                 {
                     throw new FileNotFoundException($"The .bot configuration file was not found. botFilePath: {botFilePath}");
                 }
+
                 // Loads .bot configuration file and adds a singleton that your Bot can access through dependency injection.
                 BotConfiguration botConfig = null;
                 try
