@@ -101,7 +101,7 @@ Running the project also opens the Web Chat app in a browser. This app connects 
 
 ## Hooking up Web Chat
 
-Azure Bot Service's Web Chat is a JavaScript component that lets you easily embed your bot in any Web site. We'll use it in the J. Edgar Hoover Bot Web page. To get Web Chat to talk to your bot, you must enable the bot's Direct Line channel and provide an authentication token in the `bot.htm` page.
+Azure Bot Service's Web Chat is a JavaScript component that lets you easily embed your bot in any Web site. We'll use it in the J. Edgar Hoover Bot Web page. To get Web Chat to talk to your bot, you must enable the bot's Direct Line channel and provide an authentication token in the `wwwroot/settings.js` file.
 
 In the Azure portal, enable Direct Line in your Web App Bot's Channels blade. 
 
@@ -119,17 +119,17 @@ Enter "Direct Line" as the name of the new site. Keys are generated and the conf
 
 ![Direct Line keys](images/directline_keys.png)
 
-Click the Show button to reveal one of secret keys, then copy it and paste it into `bot.htm` in place of the placeholder text. 
+Click the Show button to reveal one of your keys, then copy it and paste it into `settings.js` in place of the placeholder text. 
 
 ![bot.htm](images/bot_htm.png)
 
-Don't worry about the speech-related items in `bot.htm` yet; we'll fill them in later.
+Don't worry about the speech-related items in `settings.js` yet; we'll fill them in later.
 
 **NOTE** For more help, see [Connect a bot to Direct Line](https://docs.microsoft.com/en-us/azure/bot-service/bot-service-channel-connect-directline?view=azure-bot-service-3.0).
 
-After you've added the Direct Line secret to `bot.htm`, you can now publish the bot so you can test it in a browser.
+After you've added the Direct Line secret to `settings.js`, you can now publish the bot so you can test it in a browser.
 
-**IMPORTANT**  The Hoover Bot is a technology demonstration and is not intended to be a production application. Your bot and speech subscription keys are embedded in the source code of `bot.htm` and can therefore be easily obtained by anyone with access to the site. This will allow them to use your Azure resource in their own apps under your subscription. When you're using trial or free tier keys, at most your bot might stop working because too many requests are being made with your keys. We do not recommend using paid keys for the Hoover Bot, as this could cost you actual money. You are always responsible for the security of your keys and for all requests made using your keys.
+**IMPORTANT**  The Hoover Bot is a technology demonstration and is not intended to be a production application. Your bot and speech subscription keys are embedded in the source code of `settings.js`, which is accessible on the bot's Web site. The keys can therefore be easily obtained by anyone with access to the site. Anyone with the keys can use your Azure resource in their own apps under your subscription. When you're using trial or free tier keys, at most your bot might stop working because too many requests are being made with your keys. We do not recommend using paid keys for the Hoover Bot, as this could cost you actual money. You are always responsible for the security of your keys and for all requests made using your keys.
 
 ## Publishing your bot
 
@@ -253,7 +253,7 @@ For full details on the uploading and training process, see [Enable custom pronu
 
 ### Enabling custom speech in the Web app
 
-1. Open the `bot.htm` file again (in `wwwroot`) and add your your Speech key and the required custom Speech and Voice endpoints where indicated. 
+1. Open the `settings.js` file again (in `wwwroot`) and add your your Speech key and the required custom Speech and Voice endpoints where indicated. 
 
     These are the endpoints you made a note of when you created the custom voice and speech models. If you didn't copy them, you can find your key in the Azure dashboard and the endpoints in the [cris.ai portal](http://cris.ai/). 
 
@@ -281,7 +281,7 @@ The entirety of the bot's server-side logic is in `EchoWithCounterBot.cs`. Here 
 
 * Finally, search results queries are put together into a "carousel" of cards, each bearing an image thumbnail and text extracted from the document. The card layout uses a custom `AdaptiveCard` class. Since most documents begin with a cover page that looks similar across the entire archive, we use the second page's thumbnail in multi-page documents to give each result a visually-distinguishable thumbnail, and the beginning of the second page's text as a summary of the document.
 
-Client-side, you'll find all our logic in `bot.htm`. This document is included into the main Hoover Bot page `default.htm` using an HTML `<iframe>` tag. In `bot.htm`, you'll find some CSS rules for styling the chat (including one to remove the Upload button, which we don't use) and some HTML and JavaScript code. Here's an overview.
+Client-side, you'll find all our logic in `bot.htm`. This document is included into the main Hoover Bot page `default.htm` using an HTML `<iframe>` tag. In `bot.htm`, you'll also find CSS rules for styling the chat (including one to remove the Upload button, which we don't use) and HTML and JavaScript code. Here's an overview.
 
 * We generate a unique user ID using `Date.now()`, which is milliseconds since January 1, 1970. Our bot keeps track of the users it has greeted to avoid greeting them more than once, which requires that all Web Chat users have unique names. This time-based name is plenty unique enough for our purposes.
 
