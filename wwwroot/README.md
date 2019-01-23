@@ -2,4 +2,4 @@ Copy these files into the wwwroot folder of the Visual Studio project you downlo
 
 Some files have the same name as existing files; replace the existing files with the new ones.
 
-Customize `bot.htm` with your bot and speech keys and endpoints.
+Customize `settings.js` with your bot and speech keys and endpoints.
